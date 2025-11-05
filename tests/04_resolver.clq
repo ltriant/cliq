@@ -1,0 +1,4 @@
+defn foo(xs) = ys.map(inc)
+
+let things = 1..10 in
+say things.map(inc)

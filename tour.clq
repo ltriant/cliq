@@ -1,0 +1,301 @@
+#
+#  Welcome to
+#
+#      ::::::::    :::           :::     ::::::::   
+#     :+:    :+:   :+:                  :+:    :+:  
+#     +:+          +:+          ++:++   +:+    +:+  
+#     +#+          +#+           +#+    +#+    +:+  
+#     +#+          +#+           +#+    +#+  # +#+  
+#     #+#    #+#   #+#           #+#    #+#   +#+   
+#      ########    ##########   #####    ###### ### 
+#
+# cliq is a dynamically typed, not too serious, kinda sorta functional language. Below is a tour of
+# the language. It's a valid cliq source file, so the entire source should be able to be pasted
+# into the REPL.
+#
+# It takes inspiration from Perl, Clojure, Nim, and OCaml.
+#
+# cliq is named for my wife Cherie, and for my daughters Lucy and Quinn. The language should be
+# expressive, emotive, cheeky, and fun. You should be able to write programs fast, because "a quick
+# game's a good game", as my wife would say.
+#
+# The language is designed to be run in the REPL first, and secondly from source files.
+#
+
+# Hello, world!
+say "Hello, world!"
+let name = "cliq" in say "Hello from ", name
+
+#
+# Basic types
+#
+
+# Numbers are all the same type, internally represented as a float32
+3
+3.123
+-3.14152
+
+# Large numbers can be written with underscores for easier understanding
+1_000_000
+
+# Strings are double-quoted
+"foo"
+
+# Boolean values
+true
+false
+
+# And nil/null
+nil
+
+# Arrays, internally represented as an array deque
+[1, 2, 3]
+
+# Arrays are also heterogeneous
+[1, "two", true, [3, 4]]
+
+
+#
+# Arithmetic expressions
+#
+
+1 + 2
+2 * 3
+10 / 5
+5 - 3
+1 + (2 * 3) / 4
+10 mod 2 == 0
+10 div 3 == 3
+
+# `+` is also string concatenation
+"abc" + "def" == "abcdef"
+
+# ... and array concatenation
+[1, 2] + [3, 4] == [1, 2, 3, 4]
+
+# ... and it will also stringify numbers, to concatenate them as strings
+"thing" + 1 == "thing1"
+
+# ... but it will _not_ try to convert the string to a number, in order to perform addition
+"1" + 1 == "11"
+
+# ... to do that, we need to use the `parseNum` function
+parseNum("1") + 1 == 2
+
+
+#
+# Conditions and logic
+#
+
+10 < 11
+10 <= 10
+20 > 10
+10 >= 9
+10 == 10
+9 != 10
+true == true
+false != true
+"this is a string" != "this is some other string"
+
+# The space-ship operator is here too, mostly used for sorting
+1 <=> 10 == -1
+10 <=> 10 == 0
+20 <=> 10 == 1
+
+# Logic operators
+true and (not false)
+false or true
+not (false and true)
+(10 < 11) and (8 != 9)
+
+# If statements
+if ((10 >= 5) and (8 < 10))
+    "condition matches"
+else
+    "condition does not match"
+
+# They can also be combined for else-if behaviour
+if (op == "+")
+    a + b
+else if (op == "-")
+    a - b
+else
+    nil
+
+
+#
+# Let bindings
+#
+
+# The variable `x` is only in scope for this expression
+let x = 10 in x + 1
+
+# We can also have multi-var let bindings
+let x = 10, y = 5 in x + y
+
+# The bindings are declared sequentially, so subsequent variables can use the value from previous
+# declarations
+let x = 10,
+    y = x * 2
+in
+    [x, y]
+
+# Another alternative is let bindings within each other
+let x = 10 in
+let y = x * 2 in
+say [x, y]
+
+
+#
+# Global variables
+#
+
+# This can only be declared as a top-level statement, so vars are always global like this
+def x = 10
+
+
+#
+# Functions
+#
+
+# We can define a function and call it
+def inc = \a => a + 1
+inc(5) == 6
+
+# ... or here's some nicer syntactic sugar for the same thing
+defn inc(a) = a + 1
+inc(5) == 6
+
+# We also have recursive functions that can totally blow out the stack
+defn fib(n) =
+    if (n <= 1)
+        n
+    else
+        fib(n - 2) + fib(n - 1)
+
+# Functions also dispatch via Unified Function Call Syntax (UFCS)
+inc(10) == 10.inc()
+10.inc().inc() == 12
+
+# For the most part, this is the preferred way of writing cliq code, so that it more clearly reads
+# in a left-to-right fashion, and makes it easier to iterate on an expression by adding onto the
+# end of it, rather than by wrapping the existing code in another function call.
+(1..5).map(\a => a * 2).sum() == 30
+
+#
+# Arrays
+#
+
+# Arrays can be created by ranges
+1 .. 5 == [1, 2, 3, 4, 5]
+1 ..< 5 == [1, 2, 3, 4]
+
+# They can be prepended to, and appended to, and concatenated
+1 : [2] == [1, 2]
+[] : 1 : 2 == [1, 2]
+
+# They can be concatenated
+[1, 2] + [3, 4] == [1, 2, 3, 4]
+
+# There are also functions for common operations
+[2, 4, 6].length() == 3
+[1, 2].first() == 1
+[1, 2].second() == 2
+[1, 2, 3, 4].last() == 4
+[1, 2, 3].rest() == [2, 3]
+[1, 2, 3, 4].drop(3) == [4]
+[1, 2, 3, 4].dropLast(3) == [1]
+[2, 4, 6].nth(2) == 6
+[2, 4, 6].nth(-1) == 6
+[1, 2, 3].sum() == 6
+
+# They can be sorted, with a sort function you provide
+[1, 3, 5, 7, 9, 2, 4, 6, 8, 10].sort(\a, b => a <=> b) == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+
+# There are also some typical functions for iterating over arrays too...
+# ... to apply a function to all array items
+defn incAll(xs) = xs.map(\x => x + 1)
+(1..10).incAll() == [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+
+# ...or to only select the array items which satisfy a function
+defn odds(xs) = xs.filter(\x => x mod 2 != 0)
+(1..10).odds() == [1, 3, 5, 7, 9]
+
+# ...or to reduce all array items into a single value
+defn factorial(n) = (1..n).reduce(\a, b => a * b, 1)
+5.factorial() == 120
+
+# ...or to combine/zip lists together
+let odds = [1, 3, 5, 7],
+    evens = [2, 4, 6, 8] in
+odds.zip(evens) == [[1, 2], [3, 4], [5, 6], [7, 8]]
+
+#
+# Nil punning
+#
+
+# Many functions prefer to nil pun as much as possible. That is, most functions accept nil as a
+# parameter, and will return nil immediately, so we can have more expressive code without needing
+# to check for nil values all the time. For example:
+nil.first() == nil
+nil.second() == nil
+nil.last() == nil
+nil.nth(10) == nil
+nil.drop(10) == nil
+nil.dropLast(3) == nil
+nil.sum() == nil
+nil.length() == nil
+nil.sort(\a, b => a <=> b) == nil
+nil.drop(3).dropLast(5).length() == nil
+
+# This behaviour can be paired with the `orelse` operator to assert a default value
+nil orelse 10 == 10
+nil.drop(3).length() orelse -1 == -1
+
+#
+# Strings
+#
+
+# How long is a string?
+"abcdef".length() == 6
+
+# Split a string by another string into an array
+"one two three".split(" ") == ["one", "two", "three"]
+"one   two   three".split(" +") == ["one", "two", "three"]
+
+#
+# Numbers
+#
+
+# Get the absolute value
+(-1).abs() == 1
+
+10.inc() == 11
+10.dec() == 9
+
+#
+# File IO
+#
+
+# There is no access to lower level primitives, like file handles or descriptors. All file IO
+# functions will open and close the file on each invocation, so that'll probably have negative
+# implications on performance if we're being a little irresponsible in our code.
+
+# Write to a file, overriding existing files
+"numbers.txt".spit("1\n2\n3")
+
+# We can also use an array as the file content, inserting newlines after each line
+"numbers.txt".spit(["1", "2", "3"])
+
+# We can also append to a file. If the file doesn't exist, it'll create it first.
+"test.txt".append("this is a test file\n")
+
+# We can then read everything from a file
+"numbers.txt".slurp() == "1\n2\n3"
+
+# ... or use a friendlier function for getting all of the lines as an array
+"numbers.txt".lines() == ["1", "2", "3"]
+
+# Then we can do whatever our imagination desires!
+"numbers.txt".lines().reduce(\a, d => a + parseNum(d), 0) == 6

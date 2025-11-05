@@ -1,0 +1,87 @@
+# Advent of Code 2024 Day 1
+
+# Turn a string: "10    20", into an array: [10, 20]
+defn intoPair(s) =
+    let xs = s.split(" ") in
+    [xs.first().parseNum(), xs.last().parseNum()]
+
+defn part1() =
+    let
+        pairs = "aoc2024day01.txt".lines().map(intoPair),
+        firsts = pairs.map(first).sort(\a, b => a <=> b),
+        seconds = pairs.map(second).sort(\a, b => a <=> b)
+    in
+        firsts
+            .zip(seconds)
+            .map(\xs => (xs.first() - xs.second()).abs())
+            .sum()
+
+say "Day 1, Part 1: ", part1()
+
+#
+# Perl Weekly Challenge
+#
+
+#
+# Day 334 Task 1: Range Sum
+#   You are given a list integers and pair of indices.
+#   Write a script to return the sum of integers between the given indices (inclusive).
+#
+
+say "Day 334, Task 1: Range Sum"
+#defn day334task1(xs, x, y) = (x..y).reduce(fn(a, v) => a + xs.nth(v), 0)
+defn day334task1(xs, x, y) = (x..y).map(\a => xs.nth(a)).sum()
+
+say day334task1([-2, 0, 3, -5, 2, -1], 0, 2) == 1
+say day334task1([1, -2, 3, -4, 5], 1, 3) == -3
+say day334task1([1, 0, 2, -1, 3], 3, 4) == 2
+say day334task1([-5, 4, -3, 2, -1, 0], 0, 3) == -2
+say day334task1([-1, 0, 2, -3, -2, 1], 0, 2) == 1
+
+#
+# Day 334 Task 2: Nearest Valid Point
+#   You are given current location as two integers: x and y. You are also given a list of points
+#   on the grid.
+#   A point is considered valid if it shares either the same x-coordinate or the same y-coordinate
+#   as the current location.
+#   Write a script to return the index of the valid point that has the smallest Manhattan distance
+#   to the current location. If multiple valid points are tied for the smallest distance, return
+#   the one with the lowest index. If no valid points exist, return -1.
+#
+
+say "Day 334, Task 2: Nearest Valid Point"
+defn manhattanDistance(p1, p2) = abs(p1.first() - p2.first()) + abs(p1.second() - p2.second())
+defn day334task2(grid, x, y) =
+    let currentLocation = [x, y] in
+    (0 ..< grid.length())
+        .zip(grid)
+        .filter(\xs => (xs.second().first() == x) or (xs.second().second() == y))
+        .map(\xs => [xs.first(), xs.second(), xs.second().manhattanDistance(currentLocation)])
+        .sort(\as, bs => as.nth(2) <=> bs.nth(2))
+        .first()
+        .first()
+        orelse -1
+
+say day334task2([[1, 2], [3, 1], [2, 4], [2, 3]], 3, 4) == 2
+say day334task2([[2, 2], [3, 3], [4, 4]], 1, 1) == -1
+say day334task2([[0, 1], [1, 0], [0, 2], [2, 0]], 0, 0) == 0
+
+#
+# Day 336 Task 1: Equal Group
+# You are given an array of integers.
+# Write a script to return true if the given array can be divided into one or more groups: each
+# group must be of the same size as the others, with at least two members, and with all members
+# having the same value.
+#
+
+#defn day336task1(xs) =
+    #let freqs = xs.reduce(fn(m, x) => m.update(x, fn(v) => inc(v orelse 0)), {}),
+    #    firstThing = xs.first(),
+
+
+#say "Day 336, Task 1: Equal Group"
+#say day336task1([1,1,2,2,2,2]) == true
+#say day336task1([1,1,1,2,2,2,3,3]) == false
+#say day336task1([5,5,5,5,5,5,7,7,7,7,7,7]) == true
+#say day336task1([1,2,3,4]) == false
+#say day336task1([8,8,9,9,10,10,11,11]) == true

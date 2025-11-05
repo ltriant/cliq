@@ -1,0 +1,9 @@
+defn emptyParamList() =
+	let x = 10 in x + 1
+say "empty param list, should be 11: ", emptyParamList()
+
+defn withParamList(a, b) = a + b
+say "with param list, should be 7: ", withParamList(3, 4)
+
+def theLongWay = \a => say "got ", a
+theLongWay(10)

@@ -1,0 +1,5 @@
+let
+	things = 1..10,
+	otherThings = things.map(inc)
+in
+	say otherThings

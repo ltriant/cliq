@@ -1,0 +1,4 @@
+(executable
+  (name cliq)
+  (libraries unix str))
+
