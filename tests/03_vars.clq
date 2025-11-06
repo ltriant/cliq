@@ -1,5 +1,5 @@
 let
 	things = 1..10,
-	otherThings = things.map(inc)
+	otherThings = things.map(20)
 in
 	say otherThings
