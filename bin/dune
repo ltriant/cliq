@@ -1,5 +1,5 @@
 (executable
   (public_name cliq)
   (name main)
-  (libraries unix str))
+  (libraries cliq unix str))
 

@@ -66,6 +66,7 @@ nil
 1 + (2 * 3) / 4
 10 mod 2 == 0
 10 div 3 == 3
+2 pow 3 == 8
 
 # `+` is also string concatenation
 "abc" + "def" == "abcdef"
@@ -101,6 +102,10 @@ false != true
 1 <=> 10 == -1
 10 <=> 10 == 0
 20 <=> 10 == 1
+
+# The divisible operator, checks if a number is divisible by another number
+9 /? 3 == true
+9 /? 2 == false
 
 # Logic operators
 true and (not false)
@@ -196,6 +201,13 @@ inc(10) == 10.inc()
 
 # They can be concatenated
 [1, 2] + [3, 4] == [1, 2, 3, 4]
+
+# They can also have some arithmetic operations applied to all elements
+[1, 2, 3] ++ 1 == [2, 3, 4]
+[1, 2, 3] -- 1 == [0, 1, 2]
+[1, 2, 3] ** 2 == [2, 4, 6]
+[1, 2, 3] // 2 == [0.5, 1, 1.5]
+[1, 2, 3] div 2 == [0, 1, 1]
 
 # There are also functions for common operations
 [2, 4, 6].length() == 3

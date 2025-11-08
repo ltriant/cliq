@@ -37,7 +37,6 @@ foo.sort() and foo.sort(fn(a, b) => a <=> b)
 
 ```
 (1..10).partition(3) == [[1,2,3], [4,5,6], [7,8,9], [10]]
-(1..5).reverse() == [5, 4, 3, 2, 1]
 ```
 
 * Indexing
@@ -47,10 +46,6 @@ foo.sort() and foo.sort(fn(a, b) => a <=> b)
  - foo[0..9] ?
  - foo[..9] implies 0..9
  - foo[..-2] excludes the last 2 items
-
-## Missing operators
-
-* Power `**`
 
 ## String things
 
