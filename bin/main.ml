@@ -1,4 +1,4 @@
-open Intepreter
+open Interpreter
 open Parser
 open Types
 
@@ -65,6 +65,14 @@ let repl () =
   in
   loop ()
 
+let error_with_context code err_msg pos =
+  let lines = String.split_on_char '\n' code in
+  let suspect_line = try List.nth lines (pos.line - 1) with _ -> "" in
+  let line_prefix = Printf.sprintf "%3d: " pos.line in
+  let pointer = String.make (pos.column - 1 + String.length line_prefix) ' ' ^ "^" in
+  Printf.sprintf "%s\n%s%s\n%s\n%s" err_msg line_prefix suspect_line pointer
+    (if suspect_line = "" then "(end of input)" else "")
+
 let run_source_file input_file =
   try
     let code = In_channel.with_open_bin input_file In_channel.input_all in
@@ -79,10 +87,17 @@ let run_source_file input_file =
         ())
   with
   | Tokenize_error (msg, pos) ->
-      Printf.printf "Tokenize error at %s: %s\n\n" (string_of_position pos) msg
-  | Parse_error (msg, _) -> Printf.printf "Parse error:\n%s\n\n" msg
+      let code = In_channel.with_open_bin input_file In_channel.input_all in
+      let err_ctx = error_with_context code msg pos in
+      print_endline err_ctx
+  | Parse_error (msg, pos) ->
+      let code = In_channel.with_open_bin input_file In_channel.input_all in
+      let err_ctx = error_with_context code msg pos in
+      print_endline err_ctx
   | Runtime_error (msg, pos) ->
-      Printf.printf "Runtime error at %s: %s\n\n" (string_of_position pos) msg
+      let code = In_channel.with_open_bin input_file In_channel.input_all in
+      let err_ctx = error_with_context code msg pos in
+      print_endline err_ctx
 
 (* Example usage *)
 let () =

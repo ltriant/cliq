@@ -10,7 +10,7 @@ type value =
       string * int * (interpreter -> position -> value array -> value)
   | VNil
 
-(* Intepreter environment *)
+(* Interpreter environment *)
 and environment = {
   values : (string, value) Hashtbl.t;
   mutable nFuncs : int;
@@ -192,6 +192,7 @@ let new_interpreter env =
            | [| VArray xs |] -> VNum (xs |> Array.length |> float_of_int)
            | [| VStr s |] -> VNum (s |> String.length |> float_of_int)
            | _ -> raise (Runtime_error ("length: expected array", pos)) ));
+
   set_value env "reverse"
     (VFunction
        ( "reverse",
@@ -202,6 +203,7 @@ let new_interpreter env =
            | [| VArray xs |] ->
                VArray (xs |> Array.to_list |> List.rev |> Array.of_list)
            | _ -> raise (Runtime_error ("reverse: expected array", pos)) ));
+
   set_value env "map"
     (VFunction
        ( "map",
@@ -229,6 +231,7 @@ let new_interpreter env =
            | _ ->
                raise (Runtime_error ("map: expected array, and function", pos))
        ));
+
   set_value env "filter"
     (VFunction
        ( "filter",
@@ -263,6 +266,7 @@ let new_interpreter env =
                raise
                  (Runtime_error ("filter: expected array, and function", pos))
        ));
+
   set_value env "reduce"
     (VFunction
        ( "reduce",
@@ -297,6 +301,7 @@ let new_interpreter env =
                  (Runtime_error
                     ("reduce: expected array, function, and initial value", pos))
        ));
+
   set_value env "zip"
     (VFunction
        ( "zip",
@@ -325,6 +330,7 @@ let new_interpreter env =
                         (type_of_value a) (type_of_value b),
                       pos ))
            | _ -> raise (Runtime_error ("Unreachable", pos)) ));
+
   set_value env "sum"
     (VFunction
        ( "sum",
@@ -354,6 +360,7 @@ let new_interpreter env =
                         (type_of_value a),
                       pos ))
            | _ -> raise (Runtime_error ("Unreachable", pos)) ));
+
   set_value env "first"
     (VFunction
        ( "first",
@@ -369,6 +376,7 @@ let new_interpreter env =
                         (type_of_value x),
                       pos ))
            | _ -> raise (Runtime_error ("Unreachable", pos)) ));
+
   set_value env "second"
     (VFunction
        ( "second",
@@ -384,6 +392,7 @@ let new_interpreter env =
                         (type_of_value x),
                       pos ))
            | _ -> raise (Runtime_error ("Unreachable", pos)) ));
+
   set_value env "last"
     (VFunction
        ( "last",
@@ -400,6 +409,7 @@ let new_interpreter env =
                         (type_of_value x),
                       pos ))
            | _ -> raise (Runtime_error ("Unreachable", pos)) ));
+
   set_value env "rest"
     (VFunction
        ( "rest",
@@ -418,6 +428,7 @@ let new_interpreter env =
                         (type_of_value x),
                       pos ))
            | _ -> raise (Runtime_error ("Unreachable", pos)) ));
+
   set_value env "drop"
     (VFunction
        ( "drop",
@@ -437,6 +448,7 @@ let new_interpreter env =
                         (type_of_value x) (type_of_value y),
                       pos ))
            | _ -> raise (Runtime_error ("Unreachable", pos)) ));
+
   set_value env "dropLast"
     (VFunction
        ( "dropLast",
@@ -455,6 +467,7 @@ let new_interpreter env =
                         (type_of_value x) (type_of_value y),
                       pos ))
            | _ -> raise (Runtime_error ("Unreachable", pos)) ));
+
   set_value env "nth"
     (VFunction
        ( "nth",
@@ -474,6 +487,7 @@ let new_interpreter env =
                         (type_of_value x) (type_of_value y),
                       pos ))
            | _ -> raise (Runtime_error ("Unreachable", pos)) ));
+
   set_value env "sort"
     (VFunction
        ( "sort",
@@ -509,6 +523,7 @@ let new_interpreter env =
                         (type_of_value x) (type_of_value y),
                       pos ))
            | _ -> raise (Runtime_error ("Unreachable", pos)) ));
+
   set_value env "split"
     (VFunction
        ( "split",
@@ -543,6 +558,26 @@ let new_interpreter env =
                         (type_of_value a) (type_of_value b),
                       pos ))
            | _ -> raise (Runtime_error ("Unreachable", pos)) ));
+
+  set_value env "words"
+    (VFunction
+       ( "words",
+         1,
+         fun _ pos args ->
+           match args with
+           | [| VStr s |] ->
+               VArray
+                 (Str.split (Str.regexp " +") s
+                 |> List.map (fun a -> VStr a)
+                 |> Array.of_list)
+           | [| a |] ->
+               raise
+                 (Runtime_error
+                    ( Printf.sprintf "words: expected a string to split, got %s"
+                        (type_of_value a),
+                      pos ))
+           | _ -> raise (Runtime_error ("Unreachable", pos)) ));
+
   set_value env "parseNum"
     (VFunction
        ( "parseNum",
@@ -557,6 +592,7 @@ let new_interpreter env =
                         (type_of_value a),
                       pos ))
            | _ -> raise (Runtime_error ("Unreachable", pos)) ));
+
   set_value env "lines"
     (VFunction
        ( "lines",
@@ -581,6 +617,28 @@ let new_interpreter env =
                         (type_of_value a),
                       pos ))
            | _ -> raise (Runtime_error ("Unreachable", pos)) ));
+
+  set_value env "slurp"
+    (VFunction
+       ( "slurp",
+         1,
+         fun _ pos args ->
+           match args with
+           | [| VStr s |] -> (
+               try VStr (In_channel.with_open_text s In_channel.input_all)
+               with Sys_error exn ->
+                 raise
+                   (Runtime_error
+                      (Printf.sprintf "slurp: unable to open file: %s" exn, pos))
+               )
+           | [| a |] ->
+               raise
+                 (Runtime_error
+                    ( Printf.sprintf "slurp: expected str, got %s"
+                        (type_of_value a),
+                      pos ))
+           | _ -> raise (Runtime_error ("Unreachable", pos)) ));
+
   set_value env "inc"
     (VFunction
        ( "inc",
@@ -595,6 +653,7 @@ let new_interpreter env =
                         (type_of_value a),
                       pos ))
            | _ -> raise (Runtime_error ("Unreachable", pos)) ));
+
   set_value env "dec"
     (VFunction
        ( "dec",
@@ -609,6 +668,7 @@ let new_interpreter env =
                         (type_of_value a),
                       pos ))
            | _ -> raise (Runtime_error ("Unreachable", pos)) ));
+
   set_value env "abs"
     (VFunction
        ( "abs",
@@ -623,6 +683,7 @@ let new_interpreter env =
                         (type_of_value a),
                       pos ))
            | _ -> raise (Runtime_error ("Unreachable", pos)) ));
+
   { env }
 
 let rec get_value e var pos =

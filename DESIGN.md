@@ -46,6 +46,8 @@ foo.sort() and foo.sort(fn(a, b) => a <=> b)
  - foo[0..9] ?
  - foo[..9] implies 0..9
  - foo[..-2] excludes the last 2 items
+* Quoted-literal arrays
+ - qw{foo bar baz}
 
 ## String things
 
@@ -55,6 +57,8 @@ foo.sort() and foo.sort(fn(a, b) => a <=> b)
 
 * Are strings made up of chars?
 * Can we index strings?
+* Alternative quote symbols
+  - q{quotes "can" go in here}
 
 ## Non-decimal number expressions
 
