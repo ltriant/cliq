@@ -39,6 +39,8 @@ and token_kind =
   | RParen
   | LSquareBracket
   | RSquareBracket
+  | LBrace
+  | RBrace
   | Comma
   | Dot
   | DotDot
@@ -61,6 +63,7 @@ and token_kind =
   | LessEqualGreater
   | Colon
   | SlashQuestion
+  | EqualSquiggle
   | EOF
 
 let string_of_token_kind = function
@@ -90,6 +93,8 @@ let string_of_token_kind = function
   | RParen -> ")"
   | LSquareBracket -> "["
   | RSquareBracket -> "]"
+  | LBrace -> "{"
+  | RBrace -> "}"
   | Comma -> ","
   | Dot -> "."
   | DotDot -> ".."
@@ -111,5 +116,6 @@ let string_of_token_kind = function
   | LessEqualGreater -> "<=>"
   | Colon -> ":"
   | SlashQuestion -> "/?"
+  | EqualSquiggle -> "=~"
   | EOF -> "EOF"
 

@@ -212,6 +212,9 @@ let next_token t =
             | Some '>' ->
                 advance t;
                 FatComma
+            | Some '~' ->
+                advance t;
+                EqualSquiggle
             | _ -> EqualSign)
         | '!' -> (
             advance t;
@@ -246,6 +249,12 @@ let next_token t =
         | ']' ->
             advance t;
             RSquareBracket
+        | '{' ->
+            advance t;
+            LBrace
+        | '}' ->
+            advance t;
+            RBrace
         | ',' ->
             advance t;
             Comma

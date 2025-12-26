@@ -71,18 +71,6 @@ foo.sort() and foo.sort(fn(a, b) => a <=> b)
 ## Maps
 
 ```
-{ "foo" => 10, "bar" => 20 }
-```
-
-* Indexing
-  - `foo["key"]` ?
-  - `foo.get("key")` ?
-
-How should map/filter/reduce work on maps?
-
-```
-{ "foo" => 10 }.keys() == ["foo"]
-{ "foo" => 10, "bar" => 10 }.values() == [10, 10]
 { "foo" => 10, "bar" => 20 }.select(["foo"]) == { "foo" => 10 }
 ```
 
@@ -143,9 +131,47 @@ else
 
 `foo !~ /^whatever$/` for negative matches
 
-How to extract capture groups? Perl used $1, $2, etc. Not sure I want to introduce this idea? But maybe...
+The literal syntax `/foo/` should be interned. But a stringified regex should be supported too, so we
+can build dynamic regular expressions at runtime. This can come later though.
 
-Any regex objects can be interned.
+How to extract capture groups? Perl used $1, $2, etc. Not sure I want to introduce this idea? But
+maybe...
+
+Another option is a function-call syntax for regex values...
+
+```
+let re = /^(\d+):(\d+)$/,
+    input = "123:456"
+in
+    if (re.matches(input))
+      say re.groups(input)
+    else
+      say "no matches..."
+
+```
+
+I don't love it though. It's not... super expressive.
+
+Another option is another operator?
+
+```
+if ("123:456" =~ /(\d+):(\d+)/)
+    let groups = "123:456" <~ /(\d+):(\d+)/ in
+    say groups
+```
+
+I only want to write the regex once though, and assigning the regex to a var first sucks.
+
+Perhaps the `<~` operator can be used to check for matching too? So the same code above might be:
+
+```
+let groups = "123:456" <~ /(\d+):(\d+)/ in
+if (groups) say groups
+```
+
+Because an empty list is going to be falsey.
+
+I don't mind this...
 
 ## Repl features
 

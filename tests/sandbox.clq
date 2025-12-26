@@ -1,23 +1,3 @@
-# Advent of Code 2024 Day 1
-
-# Turn a string: "10    20", into an array: [10, 20]
-defn intoPair(s) =
-    let xs = s.split(" ") in
-    [xs.first().parseNum(), xs.last().parseNum()]
-
-defn part1() =
-    let
-        pairs = "aoc2024day01.txt".lines().map(intoPair),
-        firsts = pairs.map(first).sort(\a, b => a <=> b),
-        seconds = pairs.map(second).sort(\a, b => a <=> b)
-    in
-        firsts
-            .zip(seconds)
-            .map(\xs => (xs.first() - xs.second()).abs())
-            .sum()
-
-say "Day 1, Part 1: ", part1()
-
 #
 # Perl Weekly Challenge
 #
@@ -75,7 +55,7 @@ say day334task2([[0, 1], [1, 0], [0, 2], [2, 0]], 0, 0) == 0
 #
 
 #defn day336task1(xs) =
-    #let freqs = xs.reduce(fn(m, x) => m.update(x, fn(v) => inc(v orelse 0)), {}),
+    #let freqs = xs.reduce(\m, x => m.update(x, \v => inc(v orelse 0)), {}),
     #    firstThing = xs.first(),
 
 

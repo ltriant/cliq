@@ -6,6 +6,7 @@ type value =
   | VBool of bool
   | VStr of string
   | VArray of value array
+  | VMap of (value, value) Hashtbl.t
   | VFunction of
       string * int * (interpreter -> position -> value array -> value)
   | VNil
@@ -24,6 +25,7 @@ let type_of_value = function
   | VBool _ -> "bool"
   | VStr _ -> "str"
   | VArray _ -> "array"
+  | VMap _ -> "map"
   | VNil -> "nil"
   | VFunction _ -> "fn"
 
@@ -129,6 +131,9 @@ let rec v_eq a b pos =
   | VNum x, VStr y -> VBool (cliq_string_of_float x = y)
   | VArray xs, VArray ys ->
       VBool (Array.equal (fun m n -> to_bool (v_eq m n pos) pos) xs ys)
+  | VMap _, VMap _ ->
+      (* TODO calc this manually *)
+      VBool false
   | _ ->
       raise
         (Runtime_error
@@ -158,6 +163,15 @@ let v_not a pos =
         (Runtime_error
            (Printf.sprintf "Unexpected `not` operand: %s" (type_of_value a), pos))
 
+let v_idx v i _ =
+  match (v, i) with
+  | VArray xs, VNum i ->
+      let n_items = Array.length xs in
+      let n = int_of_float i in
+      if n < 0 then xs.(n_items - abs n) else xs.(n)
+  | VMap m, s -> ( match Hashtbl.find_opt m s with Some e -> e | None -> VNil)
+  | _, _ -> VNil
+
 let is_truthy v =
   match v with
   | VNum n -> n > 0.0
@@ -166,15 +180,27 @@ let is_truthy v =
   | VArray a -> Array.length a > 0
   | VNil -> false
   | VFunction _ -> false
+  | VMap m -> Hashtbl.length m > 0
 
 (* Convert value to string for printing *)
 let rec string_of_value = function
-  | VNum n -> Printf.sprintf "%g" n
+  | VNum n ->
+      let rv = Printf.sprintf "%f" n in
+      if String.ends_with ~suffix:".000000" rv then Printf.sprintf "%.0f" n
+      else rv
   | VBool b -> string_of_bool b
   | VStr s -> s
   | VArray elems ->
       let elem_strs = elems |> Array.map string_of_value |> Array.to_list in
       "[" ^ String.concat ", " elem_strs ^ "]"
+  | VMap elems ->
+      let elem_strs =
+        elems |> Hashtbl.to_seq
+        |> Seq.map (fun (k, v) ->
+            Printf.sprintf "%s => %s" (string_of_value k) (string_of_value v))
+        |> List.of_seq
+      in
+      "{ " ^ String.concat ", " elem_strs ^ " }"
   | VNil -> "nil"
   | VFunction (n, _, _) -> Printf.sprintf "<fn %s>" n
 
@@ -190,6 +216,7 @@ let new_interpreter env =
            match args with
            | [| VNil |] -> VNil
            | [| VArray xs |] -> VNum (xs |> Array.length |> float_of_int)
+           | [| VMap kvs |] -> VNum (Hashtbl.length kvs |> float_of_int)
            | [| VStr s |] -> VNum (s |> String.length |> float_of_int)
            | _ -> raise (Runtime_error ("length: expected array", pos)) ));
 
@@ -212,11 +239,26 @@ let new_interpreter env =
            match args with
            | [| VNil |] -> VNil
            | [| VArray xs; VFunction (_, arity, fn) |] ->
-               if arity != 1 then
+               if arity <> 1 then
                  raise
-                   (Runtime_error ("map: function should have arity of 1", pos))
+                   (Runtime_error
+                      ( "map: function should have arity of 1 when applied to \
+                         an array",
+                        pos ))
                else VArray (xs |> Array.map (fun x -> fn i pos [| x |]))
-           | [| VArray _; a |] ->
+           | [| VMap xs; VFunction (_, arity, fn) |] ->
+               if arity <> 2 then
+                 raise
+                   (Runtime_error
+                      ( "map: function should have arity of 2 when applied to \
+                         a map",
+                        pos ))
+               else
+                 VMap
+                   (xs |> Hashtbl.to_seq
+                   |> Seq.map (fun (k, v) -> (k, fn i pos [| k; v |]))
+                   |> Hashtbl.of_seq)
+           | [| VMap _ | VArray _; a |] ->
                raise
                  (Runtime_error
                     ( Printf.sprintf "map: expected a function to apply, got %s"
@@ -225,7 +267,8 @@ let new_interpreter env =
            | [| a; VFunction _ |] ->
                raise
                  (Runtime_error
-                    ( Printf.sprintf "map: expected array to map, got %s"
+                    ( Printf.sprintf
+                        "map: expected a collection to map over, got %s"
                         (type_of_value a),
                       pos ))
            | _ ->
@@ -243,13 +286,27 @@ let new_interpreter env =
                if arity != 1 then
                  raise
                    (Runtime_error
-                      ("filter: function should have arity of 1", pos))
+                      ( "filter: function should have arity of 1 when applied \
+                         to an array",
+                        pos ))
                else
                  VArray
                    (xs |> Array.to_list
                    |> List.filter (fun x -> is_truthy (fn i pos [| x |]))
                    |> Array.of_list)
-           | [| VArray _; a |] ->
+           | [| VMap xs; VFunction (_, arity, fn) |] ->
+               if arity <> 2 then
+                 raise
+                   (Runtime_error
+                      ( "filter: function should have arity of 2 when applied \
+                         to a map",
+                        pos ))
+               else
+                 VMap
+                   (xs |> Hashtbl.to_seq
+                   |> Seq.filter (fun (k, v) -> is_truthy (fn i pos [| k; v |]))
+                   |> Hashtbl.of_seq)
+           | [| VArray _ | VMap _; a |] ->
                raise
                  (Runtime_error
                     ( Printf.sprintf
@@ -278,11 +335,25 @@ let new_interpreter env =
                if arity != 2 then
                  raise
                    (Runtime_error
-                      ("reduce: function should have arity of 2", pos))
+                      ( "reduce: function should have arity of 2 when applied \
+                         to an array",
+                        pos ))
                else
                  xs |> Array.to_list
                  |> List.fold_left (fun acc v -> fn i pos [| acc; v |]) init
-           | [| VArray _; a; _ |] ->
+           | [| VMap xs; VFunction (_, arity, fn); init |] ->
+               if arity != 3 then
+                 raise
+                   (Runtime_error
+                      ( "reduce: function should have arity of 3 when applied \
+                         to a map",
+                        pos ))
+               else
+                 xs |> Hashtbl.to_seq
+                 |> Seq.fold_left
+                      (fun acc (k, v) -> fn i pos [| acc; k; v |])
+                      init
+           | [| VArray _ | VMap _; a; _ |] ->
                raise
                  (Runtime_error
                     ( Printf.sprintf
@@ -468,26 +539,6 @@ let new_interpreter env =
                       pos ))
            | _ -> raise (Runtime_error ("Unreachable", pos)) ));
 
-  set_value env "nth"
-    (VFunction
-       ( "nth",
-         2,
-         fun _ pos args ->
-           match args with
-           | [| VNil; _ |] -> VNil
-           | [| VArray xs; VNum n |] ->
-               let n_items = Array.length xs in
-               let n = int_of_float n in
-               if n < 0 then xs.(n_items - abs n) else xs.(n)
-           | [| x; y |] ->
-               raise
-                 (Runtime_error
-                    ( Printf.sprintf
-                        "drop: expected array and number, got %s, %s"
-                        (type_of_value x) (type_of_value y),
-                      pos ))
-           | _ -> raise (Runtime_error ("Unreachable", pos)) ));
-
   set_value env "sort"
     (VFunction
        ( "sort",
@@ -521,6 +572,37 @@ let new_interpreter env =
                     ( Printf.sprintf
                         "drop: expected array and function, got %s, %s"
                         (type_of_value x) (type_of_value y),
+                      pos ))
+           | _ -> raise (Runtime_error ("Unreachable", pos)) ));
+
+  set_value env "keys"
+    (VFunction
+       ( "keys",
+         1,
+         fun _ pos args ->
+           match args with
+           | [| VMap xs |] -> VArray (xs |> Hashtbl.to_seq_keys |> Array.of_seq)
+           | [| x |] ->
+               raise
+                 (Runtime_error
+                    ( Printf.sprintf "keys: expected map, got %s"
+                        (type_of_value x),
+                      pos ))
+           | _ -> raise (Runtime_error ("Unreachable", pos)) ));
+
+  set_value env "values"
+    (VFunction
+       ( "values",
+         1,
+         fun _ pos args ->
+           match args with
+           | [| VMap xs |] ->
+               VArray (xs |> Hashtbl.to_seq_values |> Array.of_seq)
+           | [| x |] ->
+               raise
+                 (Runtime_error
+                    ( Printf.sprintf "values: expected map, got %s"
+                        (type_of_value x),
                       pos ))
            | _ -> raise (Runtime_error ("Unreachable", pos)) ));
 
@@ -704,6 +786,16 @@ let rec eval i (parent : stmt option) = function
         elems |> List.map (fun e -> eval i parent e) |> Array.of_list
       in
       VArray values
+  | EMap (elems, _) ->
+      let kvs =
+        elems |> List.to_seq
+        |> Seq.map (fun (k, v) ->
+            let k_val = eval i parent k in
+            let v_val = eval i parent v in
+            (k_val, v_val))
+        |> Hashtbl.of_seq
+      in
+      VMap kvs
   | ERange (start_expr, end_expr, inclusive, pos) ->
       let start_val = eval i parent start_expr in
       let end_val = eval i parent end_expr in
@@ -720,6 +812,10 @@ let rec eval i (parent : stmt option) = function
         else make_range (i + 1) (VNum (float_of_int i) :: acc)
       in
       VArray (Array.of_list (make_range start_int []))
+  | EIndex (collectionExpr, idxExpr, pos) ->
+      let coll = eval i parent collectionExpr in
+      let idx = eval i parent idxExpr in
+      v_idx coll idx pos
   | EUnaryMinus (e, pos) ->
       let v = eval i parent e in
       VNum (-.to_num v pos)
@@ -877,7 +973,8 @@ let rec eval i (parent : stmt option) = function
                 (Runtime_error
                    ( Printf.sprintf "Unexpected `/?` operands, got %s, %s"
                        (type_of_value a) (type_of_value b),
-                     pos ))))
+                     pos )))
+      | RegexMatch -> VNil)
 
 let interpret i stmt =
   match stmt with

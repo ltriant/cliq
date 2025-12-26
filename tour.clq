@@ -209,6 +209,10 @@ inc(10) == 10.inc()
 [1, 2, 3] // 2 == [0.5, 1, 1.5]
 [1, 2, 3] div 2 == [0, 1, 1]
 
+# Indexing works the way you'd expect
+let xs = 1..10 in xs[0] == 1
+let xs = 1..10 in xs[-1] == 10
+
 # There are also functions for common operations
 [2, 4, 6].length() == 3
 [1, 2].first() == 1
@@ -217,8 +221,6 @@ inc(10) == 10.inc()
 [1, 2, 3].rest() == [2, 3]
 [1, 2, 3, 4].drop(3) == [4]
 [1, 2, 3, 4].dropLast(3) == [1]
-[2, 4, 6].nth(2) == 6
-[2, 4, 6].nth(-1) == 6
 [1, 2, 3].sum() == 6
 
 # They can be sorted, with a sort function you provide
@@ -242,6 +244,30 @@ defn factorial(n) = (1..n).reduce(\a, b => a * b, 1)
 let odds = [1, 3, 5, 7],
     evens = [2, 4, 6, 8] in
 odds.zip(evens) == [[1, 2], [3, 4], [5, 6], [7, 8]]
+
+
+#
+# Maps
+#
+
+{ "language" => "cliq", "languageType" => "functional-ish" }
+
+# Access works as expected
+let m = { "foo" => 1, "bar" => 2 } in m["foo"] == 1
+let m = { "foo" => 1, "bar" => 2 } in m["not present"] == nil
+let m = { "foo" => { "bar" => 1 } } in m["foo"]["bar"] == 1
+
+# Typical functions for common operations
+{ "a" => 1, "b" => 2 }.length() == 2
+{ "a" => 1, "b" => 2 }.keys()    # ["a", "b"]
+{ "a" => 1, "b" => 2 }.values()  # [1, 2]
+
+# Most functions for iterating and reducing arrays also apply to maps. Keep in mind that the order
+# in which key-value pairs are iterated over is non-deterministic.
+{ "a" => 1, "b" => 2 }.map(\k, v => v.inc())     # { "a" => 2, "b" => 3 }
+{ "a" => 1, "b" => 2 }.filter(\k, v => v /? 2)   # { "b" => 2 }
+{ "a" => 1, "b" => 2 }.reduce(\acc, k, v => acc + v, 0) == 3
+
 
 #
 # Nil punning

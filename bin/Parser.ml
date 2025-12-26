@@ -8,6 +8,8 @@ type expr =
   | ENil of position
   | EIdentifier of string * position
   | EArray of expr list * position
+  | EMap of (expr * expr) list * position
+  | EIndex of expr * expr * position
   | ERange of expr * expr * bool * position (* start, end, inclusive?, pos *)
   | EBinOp of binop * expr * expr * position
   | EUnaryMinus of expr * position
@@ -46,6 +48,7 @@ and binop =
   | ArrayConcat
   | OrElseNil
   | IsDivisible
+  | RegexMatch
 
 (* Pretty print AST *)
 let rec string_of_expr = function
@@ -57,10 +60,20 @@ let rec string_of_expr = function
   | EArray (elems, _) ->
       let elem_strs = List.map string_of_expr elems in
       "[" ^ String.concat ", " elem_strs ^ "]"
+  | EMap (elems, _) ->
+      let elem_strs =
+        List.map
+          (fun (k, v) ->
+            Printf.sprintf "%s => %s" (string_of_expr k) (string_of_expr v))
+          elems
+      in
+      "{ " ^ String.concat ", " elem_strs ^ " }"
   | ERange (start, end_expr, inclusive, _) ->
       Printf.sprintf "(%s %s %s)" (string_of_expr start)
         (if inclusive then ".." else "..<")
         (string_of_expr end_expr)
+  | EIndex (thing, idx, _) ->
+      Printf.sprintf "%s[%s]" (string_of_expr thing) (string_of_expr idx)
   | EBinOp (op, left, right, _) ->
       let op_str =
         match op with
@@ -87,6 +100,7 @@ let rec string_of_expr = function
         | ArrayConcat -> ":"
         | OrElseNil -> "orelse"
         | IsDivisible -> "/?"
+        | RegexMatch -> "=~"
       in
       Printf.sprintf "(%s %s %s)" op_str (string_of_expr left)
         (string_of_expr right)
@@ -110,7 +124,7 @@ let rec string_of_expr = function
               bindings))
         (string_of_expr bodyExpr)
   | EFn (params, bodyExpr, _) ->
-      Printf.sprintf "fn(%s) => %s"
+      Printf.sprintf "\\%s => %s"
         (params
         |> List.map (fun t -> string_of_token_kind t.kind)
         |> String.concat ", ")
@@ -129,7 +143,8 @@ let string_of_stmt = function
   | SExpr e -> string_of_expr e
 
 (* Convert token to string for debugging *)
-let string_of_position (pos:position) = Printf.sprintf "%d:%d" pos.line pos.column
+let string_of_position (pos : position) =
+  Printf.sprintf "%d:%d" pos.line pos.column
 
 (* Parser state *)
 type parser = {
@@ -191,8 +206,9 @@ let expect p expected =
    range_expr -> arith_expr (('..' | '..<') arith_expr)?
    arith_expr -> term (('+' | '-') term)*
    term     -> factor (('*' | '/') factor)*
-   factor   -> NUMBER | BOOL | ARRAY | 'nil' | 'not' factor | '-' factor | '(' expr ')'
+   factor   -> NUMBER | BOOL | ARRAY | MAP | 'nil' | 'not' factor | '-' factor | '(' expr ')'
    array    -> '[' (expr (',' expr)* )? ']'
+   map      -> '{' (expr => expr(',' expr => expr)* )? '}'
 *)
 
 let rec parse_stmt p =
@@ -400,6 +416,10 @@ and parse_equality_expr p =
       let _ = consume p in
       let right = parse_concat_expr p in
       EBinOp (Ne, left, right, token.pos)
+  | EqualSquiggle ->
+      let _ = consume p in
+      let right = parse_concat_expr p in
+      EBinOp (RegexMatch, left, right, token.pos)
   | _ -> left
 
 and parse_concat_expr p =
@@ -549,7 +569,7 @@ and parse_orelse_rest p left =
   | _ -> left
 
 and parse_call p =
-  let left = parse_primary p in
+  let left = parse_collection_access p in
   parse_call_rest p left
 
 and parse_call_rest p left =
@@ -579,7 +599,7 @@ and parse_call_rest p left =
   | Dot ->
       (* foo.function(arg1, arg2) *)
       let _ = consume p in
-      let funcName = parse_primary p in
+      let funcName = parse_collection_access p in
       let _ = expect p LParen in
       let rec parse_args acc =
         let token = peek p in
@@ -601,6 +621,20 @@ and parse_call_rest p left =
       parse_call_rest p (ECall (funcName, params, token.pos))
   | _ -> left
 
+and parse_collection_access p =
+  let expr = parse_primary p in
+  parse_collection_access_rest p expr
+
+and parse_collection_access_rest p left =
+  let token = peek p in
+  match token.kind with
+  | LSquareBracket ->
+      let _ = consume p in
+      let idxExpr = parse_expr p in
+      let _ = expect p RSquareBracket in
+      parse_collection_access_rest p (EIndex (left, idxExpr, token.pos))
+  | _ -> left
+
 and parse_primary p =
   let token = peek p in
   match token.kind with
@@ -620,6 +654,7 @@ and parse_primary p =
       let _ = consume p in
       EIdentifier (s, token.pos)
   | LSquareBracket -> parse_array p
+  | LBrace -> parse_map p
   | Not ->
       let _ = consume p in
       let operand = parse_primary p in
@@ -640,6 +675,7 @@ and parse_primary p =
       raise (Parse_error (error_with_context p.input token.pos msg, token.pos))
 
 and parse_array p =
+  (* [expr, expr, expr] *)
   let start_token = peek p in
   let _ = expect p LSquareBracket in
 
@@ -669,3 +705,29 @@ and parse_array p =
     in
     let elements = parse_elements [ first ] in
     EArray (elements, start_token.pos)
+
+and parse_map p =
+  (* { key => val, key => val } *)
+  let start_token = peek p in
+  let _ = expect p LBrace in
+
+  let rec parse_map_kvs acc =
+    let token = peek p in
+    match token.kind with
+    | RBrace -> List.rev acc
+    | _ ->
+        let keyExpr = parse_expr p in
+        let _ = expect p FatComma in
+        let valExpr = parse_expr p in
+
+        let token = peek p in
+        if token.kind = Comma then
+          let _ = consume p in
+          parse_map_kvs ((keyExpr, valExpr) :: acc)
+        else List.rev ((keyExpr, valExpr) :: acc)
+  in
+
+  let kvs = parse_map_kvs [] in
+
+  let _ = expect p RBrace in
+  EMap (kvs, start_token.pos)

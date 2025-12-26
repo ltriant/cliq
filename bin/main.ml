@@ -43,6 +43,7 @@ let repl () =
           let tokens = Scanner.tokenize trimmed in
           (* tokens |> Array.iter (fun t -> print_endline (string_of_token_kind t.kind)); *)
           let ast = parse_repl tokens trimmed in
+          print_endline (string_of_stmt ast);
           let result = interpret interpreter ast in
           (match result with
           | Some e ->
