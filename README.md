@@ -3,7 +3,7 @@
 </h1>
 
 <p align="center">
-    <strong>Dynamically typed, functional-ish language for fun</strong>
+    <strong>Dynamically typed, functional-ish language for funsies</strong>
 </p>
 
 <p align="center">
@@ -43,17 +43,21 @@ There's not much documentation yet. For now, take a tour of the language in [tou
 
 ## Planned work
 
-- Missing language features. There's still quite a few things, including syntax changes for things I've grown to dislike.
+- Actually friendly error messages. The framework for okay-ish error messages is there. But I want it much friendlier.
+- Missing language features. There's still quite a few things, including syntax changes for things I've started hating. No doubt I'll change more parts of the syntax...
 - A better repl. Multi-line support, history, introspection functions, etc. I like to use repl's a lot.
-- Bytecode VM. At the moment it's a tree-walk interpreter, which is serving me fine for now. But eventually I'd like to implement a bytecode VM.
-- Integration tests. Before working on the bytecode VM, I'll need a fairly extensive set of tests, so that I can test the compiler easily.
+- Bytecode VM. At the moment it's a tree-walk interpreter, which is fine for now. But eventually I'd like to implement a bytecode VM.
+- Integration tests. There are no tests. I know, I know... I'll add contract tests. Before working on the bytecode VM, I'll need a fairly extensive set of tests, so that I can test the compiler easily.
 - Neovim plugin. Neovim is my editor of choice, so this would be nice, even if it's just for syntax highligting.
-- Code formatter. Feels like a fun problem to solve.
+- Code formatter. Feels like a fun problem to solve? I'm sure I'll come to regret this one.
 
 [DESIGN.md](DESIGN.md) also has a list of design decisions, and planned changes to syntax and features, but it's fairly raw and not written for others, so beware.
 
 ## The name
 
 cliq is named for my wife Cherie, and for my daughters Lucy and Quinn. The language should be
-expressive, emotive, cheeky, and fun — just like them. You should be able to write programs fast,
-because per Cherie's family's mantra: "a quick game's a good game".
+expressive, emotive, cheeky, and fun — just like them.
+
+## Who's it for?
+
+It's just for me, and for what I want in a language.
