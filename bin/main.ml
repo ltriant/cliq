@@ -66,12 +66,30 @@ let repl () =
   in
   loop ()
 
+(* Replace any tabs with 4 spaces, so it's more predictable on output *)
+let cleanup_prefix_tabs s =
+  let patt = Re.Perl.re "\t" |> Re.compile in
+  Re.replace_string ~all:true patt ~by:"    " s
+
 let error_with_context code err_msg pos =
   let lines = String.split_on_char '\n' code in
+
   let suspect_line = try List.nth lines (pos.line - 1) with _ -> "" in
+  let n_tabs =
+    String.fold_left (fun n c -> if c = '\t' then n + 1 else n) 0 suspect_line
+  in
+  let cleaned_suspect_line = cleanup_prefix_tabs suspect_line in
+
   let line_prefix = Printf.sprintf "%3d: " pos.line in
-  let pointer = String.make (pos.column - 1 + String.length line_prefix) ' ' ^ "^" in
-  Printf.sprintf "%s\n%s%s\n%s\n%s" err_msg line_prefix suspect_line pointer
+  let pointer =
+    String.make
+      (String.length line_prefix + (n_tabs * 4) + pos.column - 1 - n_tabs)
+      ' '
+    ^ String.make 1 '^'
+  in
+
+  Printf.sprintf "%s\n%s%s\n%s\n%s" err_msg line_prefix cleaned_suspect_line
+    pointer
     (if suspect_line = "" then "(end of input)" else "")
 
 let run_source_file input_file =
