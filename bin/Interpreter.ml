@@ -1,6 +1,8 @@
 open Parser
 open Types
 
+let words_pattern = Re.Perl.re " +" |> Re.compile
+
 type value =
   | VNum of float
   | VBool of bool
@@ -613,10 +615,9 @@ let new_interpreter env =
          fun _ pos args ->
            match args with
            | [| VStr s; VStr ss |] ->
+               let patt = Re.Perl.re ss |> Re.compile in
                VArray
-                 (Str.split (Str.regexp ss) s
-                 |> List.map (fun a -> VStr a)
-                 |> Array.of_list)
+                 (Re.split patt s |> List.map (fun a -> VStr a) |> Array.of_list)
            | [| a; VStr _ |] ->
                raise
                  (Runtime_error
@@ -649,7 +650,7 @@ let new_interpreter env =
            match args with
            | [| VStr s |] ->
                VArray
-                 (Str.split (Str.regexp " +") s
+                 (Re.split words_pattern s
                  |> List.map (fun a -> VStr a)
                  |> Array.of_list)
            | [| a |] ->
