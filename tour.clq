@@ -222,6 +222,7 @@ let xs = 1..10 in xs[-1] == 10
 [1, 2, 3, 4].drop(3) == [4]
 [1, 2, 3, 4].dropLast(3) == [1]
 [1, 2, 3].sum() == 6
+[1, 2, 3, 4].product() == 24
 
 # They can be sorted, with a sort function you provide
 [1, 3, 5, 7, 9, 2, 4, 6, 8, 10].sort(\a, b => a <=> b) == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
@@ -257,16 +258,27 @@ let m = { "foo" => 1, "bar" => 2 } in m["foo"] == 1
 let m = { "foo" => 1, "bar" => 2 } in m["not present"] == nil
 let m = { "foo" => { "bar" => 1 } } in m["foo"]["bar"] == 1
 
+# Adding, removing, and updating entries
+let m = { "a" => 1 } in m.assoc("b", 2) == { "a" => 1, "b" => 2 }
+let m = { "a" => 1 } in m.dissoc("a") == { }
+let m = { "a" => 1 } in m.update("a", inc) == { "a" => 2 }
+
 # Typical functions for common operations
-{ "a" => 1, "b" => 2 }.length() == 2
-{ "a" => 1, "b" => 2 }.keys()    # ["a", "b"]
-{ "a" => 1, "b" => 2 }.values()  # [1, 2]
+let m = { "a" => 1, "b" => 2 } in m.length() == 2
+let m = { "a" => 1, "b" => 2 } in m.keys()    # ["a", "b"]
+let m = { "a" => 1, "b" => 2 } in m.values()  # [1, 2]
 
 # Most functions for iterating and reducing arrays also apply to maps. Keep in mind that the order
 # in which key-value pairs are iterated over is non-deterministic.
-{ "a" => 1, "b" => 2 }.map(\k, v => v.inc())     # { "a" => 2, "b" => 3 }
-{ "a" => 1, "b" => 2 }.filter(\k, v => v /? 2)   # { "b" => 2 }
-{ "a" => 1, "b" => 2 }.reduce(\acc, k, v => acc + v, 0) == 3
+let m = { "a" => 1, "b" => 2 } in m.map(\k, v => v.inc()) == { "a" => 2, "b" => 3 }
+let m = { "a" => 1, "b" => 2 } in m.filter(\k, v => v /? 2) == { "b" => 2 }
+let m = { "a" => 1, "b" => 2 } in m.reduce(\acc, k, v => acc + v, 0) == 3
+
+# TODO
+# Maps can be merged, with the right-most map's values taking precedence in the event of collisions.
+{ "a" => 1, "b" => 2 }.merge({"a" => 2}) == { "a" => 2, "b" => 2 }
+# Alternatively, mergeWith lets you provide a function to resolve collisions
+{ "a" => 1, "b" => 2 }.mergeWith({"a" => 2}, \a, b => a + b) == { "a" => 3, "b" => 2 }
 
 
 #

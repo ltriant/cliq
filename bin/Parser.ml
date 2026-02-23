@@ -194,21 +194,29 @@ let expect p expected =
     raise (Parse_error (error_with_context p.input token.pos msg, token.pos))
 
 (* Recursive descent parser following this grammar:
-   stmt     -> def_stmt | defn_stmt | expr_stmt
-   expr_stmt -> expr
-   expr     -> let_in_expr
-   let_in_expr -> 'let' IDENT '=' if_expr 'in' say_expr
-   say_expr -> 'say' if_expr(, if_expr)*
-   if_expr  -> 'if' '(' or_expr ')' expr ('else' expr)?
-   or_expr  -> and_expr ('or' and_expr)*
-   and_expr -> comp_expr ('and' comp_expr)*
-   comp_expr -> range_expr (('<' | '<=' | '>' | '>=' | '==' | '!=') range_expr)?
+   stmt       -> defn_stmt | def_stmt | expr_stmt
+   defn_stmt  -> 'defn' ident '(' ident(',' ident)* ')' '=' expr
+   def_stmt   -> 'def' ident '=' expr
+   expr_stmt  -> expr
+
+   expr       -> let_expr | say_expr | fun_expr | if_expr
+   let_expr   -> 'let' ident '=' if_expr 'in' expr
+   say_expr   -> 'say' if_expr(, if_expr)*
+   fun_expr   -> '\' ident(',' ident)* '=>' expr
+   if_expr    -> 'if' '(' expr ')' expr ('else' expr)?
+   or_expr    -> and_expr ('or' and_expr)*
+   and_expr   -> comp_expr ('and' comp_expr)*
+   comp_expr  -> range_expr (('<' | '<=' | '>' | '>=' | '==' | '!=' | '<=>') range_expr)?
    range_expr -> arith_expr (('..' | '..<') arith_expr)?
-   arith_expr -> term (('+' | '-') term)*
-   term     -> factor (('*' | '/') factor)*
-   factor   -> NUMBER | BOOL | ARRAY | MAP | 'nil' | 'not' factor | '-' factor | '(' expr ')'
-   array    -> '[' (expr (',' expr)* )? ']'
-   map      -> '{' (expr => expr(',' expr => expr)* )? '}'
+   arith_expr -> term (('+' | '++' | '-' | '--') term)*
+   term       -> factor (('*' | '**' | '/' | '//' | '/?' | 'mod' | 'div' | 'pow') factor)*
+   factor     -> number | bool | array | map | 'nil' | 'not' factor | '-' factor | '(' expr ')'
+
+   ident      -> [a-zA-Z][a-zA-Z0-9]*
+   number     -> [0-9][0-9_]* '.' [0-9_]+
+   bool       -> 'true' | 'false'
+   array      -> '[' (expr (',' expr)* )? ']'
+   map        -> '{' (expr '=>' expr(',' expr '=>' expr)* )? '}'
 *)
 
 let rec parse_stmt p =

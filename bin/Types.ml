@@ -67,10 +67,10 @@ and token_kind =
   | EOF
 
 let string_of_token_kind = function
-  | Number n -> Printf.sprintf "Number(%g)" n
-  | Bool b -> Printf.sprintf "Bool(%b)" b
-  | Str s -> Printf.sprintf "String(%s)" s
-  | Nil -> "ENil"
+  | Number n -> Printf.sprintf "%g" n
+  | Bool b -> Printf.sprintf "%b" b
+  | Str s -> s
+  | Nil -> "nil"
   | Ident i -> i
   | Plus -> "+"
   | PlusPlus -> "++"

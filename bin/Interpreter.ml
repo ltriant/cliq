@@ -133,9 +133,21 @@ let rec v_eq a b pos =
   | VNum x, VStr y -> VBool (cliq_string_of_float x = y)
   | VArray xs, VArray ys ->
       VBool (Array.equal (fun m n -> to_bool (v_eq m n pos) pos) xs ys)
-  | VMap _, VMap _ ->
-      (* TODO calc this manually *)
-      VBool false
+  | VMap m1, VMap m2 ->
+      (* TODO there's gotta be a faster way to do this? *)
+      if Hashtbl.length m1 <> Hashtbl.length m2 then VBool false
+      else
+        VBool
+          (Hashtbl.to_seq m2
+           |> Seq.for_all (fun (k2, v2) ->
+               match Hashtbl.find_opt m1 k2 with
+               | Some v1 -> to_bool (v_eq v1 v2 pos) pos
+               | None -> false)
+          || Hashtbl.to_seq m1
+             |> Seq.for_all (fun (k1, v1) ->
+                 match Hashtbl.find_opt m2 k1 with
+                 | Some v2 -> to_bool (v_eq v1 v2 pos) pos
+                 | None -> false))
   | _ ->
       raise
         (Runtime_error
@@ -239,7 +251,7 @@ let new_interpreter env =
          2,
          fun i pos args ->
            match args with
-           | [| VNil |] -> VNil
+           | [| VNil; _ |] -> VNil
            | [| VArray xs; VFunction (_, arity, fn) |] ->
                if arity <> 1 then
                  raise
@@ -283,7 +295,7 @@ let new_interpreter env =
          2,
          fun i pos args ->
            match args with
-           | [| VNil |] -> VNil
+           | [| VNil; _ |] -> VNil
            | [| VArray xs; VFunction (_, arity, fn) |] ->
                if arity != 1 then
                  raise
@@ -332,7 +344,7 @@ let new_interpreter env =
          3,
          fun i pos args ->
            match args with
-           | [| VNil |] -> VNil
+           | [| VNil; _ |] -> VNil
            | [| VArray xs; VFunction (_, arity, fn); init |] ->
                if arity != 2 then
                  raise
@@ -382,6 +394,7 @@ let new_interpreter env =
          fun _ pos args ->
            match args with
            | [| VNil; _ |] -> VNil
+           | [| _; VNil |] -> VNil
            | [| VArray xs; VArray ys |] ->
                if Array.length xs != Array.length ys then
                  raise
@@ -430,6 +443,36 @@ let new_interpreter env =
                raise
                  (Runtime_error
                     ( Printf.sprintf "sum: expected array, got %s"
+                        (type_of_value a),
+                      pos ))
+           | _ -> raise (Runtime_error ("Unreachable", pos)) ));
+
+  set_value env "product"
+    (VFunction
+       ( "product",
+         1,
+         fun _ pos args ->
+           match args with
+           | [| VNil |] -> VNil
+           | [| VArray xs |] ->
+               VNum
+                 (xs |> Array.to_list
+                 |> List.fold_left
+                      (fun acc v ->
+                        match v with
+                        | VNum vv -> acc *. vv
+                        | e ->
+                            raise
+                              (Runtime_error
+                                 ( Printf.sprintf
+                                     "Expected array of numbers, found %s"
+                                     (type_of_value e),
+                                   pos )))
+                      1.)
+           | [| a |] ->
+               raise
+                 (Runtime_error
+                    ( Printf.sprintf "product: expected array, got %s"
                         (type_of_value a),
                       pos ))
            | _ -> raise (Runtime_error ("Unreachable", pos)) ));
@@ -766,6 +809,61 @@ let new_interpreter env =
                         (type_of_value a),
                       pos ))
            | _ -> raise (Runtime_error ("Unreachable", pos)) ));
+
+  set_value env "assoc"
+    (VFunction
+       ( "assoc",
+         3,
+         fun _ pos args ->
+           match args with
+           | [| VNil; k; v |] -> VMap (Seq.singleton (k, v) |> Hashtbl.of_seq)
+           | [| VMap m; k; v |] ->
+               let nm = Hashtbl.copy m in
+               Hashtbl.replace nm k v;
+               VMap nm
+           | _ ->
+               raise (Runtime_error ("assoc: expected map, and key-value", pos))
+       ));
+
+  set_value env "dissoc"
+    (VFunction
+       ( "dissoc",
+         2,
+         fun _ pos args ->
+           match args with
+           | [| VNil; _ |] -> VNil
+           | [| VMap m; k |] ->
+               let nm = Hashtbl.copy m in
+               Hashtbl.remove nm k;
+               VMap nm
+           | _ -> raise (Runtime_error ("dissoc: expected map, and key", pos))
+       ));
+
+  set_value env "update"
+    (VFunction
+       ( "update",
+         3,
+         fun i pos args ->
+           match args with
+           | [| VNil; _; _ |] -> VNil
+           | [| VMap m; k; VFunction (_, arity, fn) |] -> (
+               if arity <> 1 then
+                 raise
+                   (Runtime_error
+                      ( "update: function should have arity of 1 when applied \
+                         to an array",
+                        pos ))
+               else
+                 match Hashtbl.find_opt m k with
+                 | Some v ->
+                     let nm = Hashtbl.copy m in
+                     Hashtbl.replace nm k (fn i pos [| v |]);
+                     VMap nm
+                 | None -> VMap m)
+           | _ ->
+               raise
+                 (Runtime_error ("update: expected map, key, and function", pos))
+       ));
 
   { env }
 
