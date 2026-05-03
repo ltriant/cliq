@@ -121,18 +121,8 @@ let resolve_stmt r s =
 
 let resolve r stmts =
   begin_scope r;
-
   register_builtin_functions r;
-
-  let rec loop_stmts r stmts =
-    match stmts with
-    | x :: xs ->
-        resolve_stmt r x;
-        loop_stmts r xs
-    | [] -> ()
-  in
-
-  loop_stmts r stmts;
+  List.iter (resolve_stmt r) stmts;
   end_scope r;
 
   if Dynarray.length r.errors > 0 then raise (Resolve_error r.errors)
