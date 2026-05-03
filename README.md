@@ -18,20 +18,20 @@ cliq files have the file extension `.clq`, and they look like this:
 
 ```
 defn rpn(xs) =
-	let
-		interpret = \s, o =>
-			if (o == "+")
-				s.dropLast(2) : s[-2] + s[-1]
-			else if (o == "-")
-				s.dropLast(2) : s[-2] - s[-1]
-			else if (o == "*")
-				s.dropLast(2) : s[-2] * s[-1]
-			else if (o == "/")
-				s.dropLast(2) : s[-2] / s[-1]
-			else
-				s : o
-	in
-		xs.reduce(interpret, [])
+  let
+    interpret = \s, o =>
+      if (o == "+")
+        s.dropLast(2) : s[-2] + s[-1]
+      else if (o == "-")
+        s.dropLast(2) : s[-2] - s[-1]
+      else if (o == "*")
+        s.dropLast(2) : s[-2] * s[-1]
+      else if (o == "/")
+        s.dropLast(2) : s[-2] / s[-1]
+      else
+        s : o
+  in
+    xs.reduce(interpret, [])
 
 let tokens = [4, 1, 2, "+", "*", 3, "/", 2, "-"] in
 say rpn(tokens).first()
