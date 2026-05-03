@@ -123,6 +123,18 @@ let rec v_int_div a b pos =
   | VArray xs, _ -> VArray (xs |> Array.map (fun x -> v_int_div x b pos))
   | _ -> raise (Runtime_error ("Can only do integer division on numbers", pos))
 
+let spaceship a b pos =
+  match (a, b) with
+  | VNum x, VNum y ->
+      VNum (float_of_int (if x < y then -1 else if x = y then 0 else 1))
+  | VStr x, VStr y -> VNum (String.compare x y |> float_of_int)
+  | _ ->
+      raise
+        (Runtime_error
+           ( Printf.sprintf "Unexpected `<=>` operands, got %s, %s"
+               (type_of_value a) (type_of_value b),
+             pos ))
+
 let rec v_eq a b pos =
   match (a, b) with
   | VNil, VNil -> VBool true
@@ -584,9 +596,9 @@ let new_interpreter env =
                       pos ))
            | _ -> raise (Runtime_error ("Unreachable", pos)) ));
 
-  set_value env "sort"
+  set_value env "sortBy"
     (VFunction
-       ( "sort",
+       ( "sortBy",
          2,
          fun i pos args ->
            match args with
@@ -595,7 +607,7 @@ let new_interpreter env =
                if arity != 2 then
                  raise
                    (Runtime_error
-                      ("reduce: function should have arity of 2", pos))
+                      ("sortBy: function should have arity of 2", pos))
                else
                  VArray
                    (xs |> Array.to_list
@@ -615,8 +627,37 @@ let new_interpreter env =
                raise
                  (Runtime_error
                     ( Printf.sprintf
-                        "drop: expected array and function, got %s, %s"
+                        "sortBy: expected array and function, got %s, %s"
                         (type_of_value x) (type_of_value y),
+                      pos ))
+           | _ -> raise (Runtime_error ("Unreachable", pos)) ));
+
+  set_value env "sort"
+    (VFunction
+       ( "sort",
+         1,
+         fun _ pos args ->
+           match args with
+           | [| VNil |] -> VNil
+           | [| VArray xs |] ->
+               VArray
+                 (xs |> Array.to_list
+                 |> List.sort (fun a b ->
+                     match spaceship a b pos with
+                     | VNum n -> int_of_float n
+                     | a ->
+                         raise
+                           (Runtime_error
+                              ( Printf.sprintf
+                                  "Expected sort function to return num, got %s"
+                                  (type_of_value a),
+                                pos )))
+                 |> Array.of_list)
+           | [| x |] ->
+               raise
+                 (Runtime_error
+                    ( Printf.sprintf "sort: expected array, got %s"
+                        (type_of_value x),
                       pos ))
            | _ -> raise (Runtime_error ("Unreachable", pos)) ));
 
@@ -1035,16 +1076,7 @@ let rec eval i (parent : stmt option) = function
           match (left_val, right_val) with
           | VNum l, VNum r -> VNum (l ** r)
           | _ -> raise (Runtime_error ("Can only do power on numbers", pos)))
-      | Spaceship -> (
-          match (left_val, right_val) with
-          | VNum x, VNum y ->
-              VNum (float_of_int (if x < y then -1 else if x = y then 0 else 1))
-          | _ ->
-              raise
-                (Runtime_error
-                   ( Printf.sprintf "Unexpected `<=>` operands, got %s, %s"
-                       (type_of_value left_val) (type_of_value right_val),
-                     pos )))
+      | Spaceship -> spaceship left_val right_val pos
       | ArrayConcat -> (
           match (left_val, right_val) with
           | VArray _, VArray _ ->

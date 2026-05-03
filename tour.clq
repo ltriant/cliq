@@ -225,7 +225,8 @@ let xs = 1..10 in xs[-1] == 10
 [1, 2, 3, 4].product() == 24
 
 # They can be sorted, with a sort function you provide
-[1, 3, 5, 7, 9, 2, 4, 6, 8, 10].sort(\a, b => a <=> b) == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+[1, 3, 5, 7, 9, 2, 4, 6, 8, 10].sort() == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+[1, 3, 5, 7, 9, 2, 4, 6, 8, 10].sortBy(\a, b => b <=> a) == [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
 
 
 # There are also some typical functions for iterating over arrays too...
@@ -296,7 +297,7 @@ nil.drop(10) == nil
 nil.dropLast(3) == nil
 nil.sum() == nil
 nil.length() == nil
-nil.sort(\a, b => a <=> b) == nil
+nil.sort() == nil
 nil.drop(3).dropLast(5).length() == nil
 
 # This behaviour can be paired with the `orelse` operator to assert a default value
