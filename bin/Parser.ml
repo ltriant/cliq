@@ -1,6 +1,5 @@
 open Types
 
-(* Expressions with positions *)
 type expr =
   | ENum of float * position
   | EBoolean of bool * position
@@ -84,7 +83,7 @@ let rec string_of_expr = function
         | Mul -> "*"
         | ArrayMul -> "**"
         | Div -> "/"
-        | ArrayDiv -> "//."
+        | ArrayDiv -> "//"
         | And -> "and"
         | Or -> "or"
         | Lt -> "<"

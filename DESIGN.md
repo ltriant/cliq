@@ -6,9 +6,7 @@ This is for me to consume, so there's very little context to anything.
 
 ## Semantic analysis
 
-At the moment, referencing a variable that doesn't exist is a runtime error.
-
-Whoops.
+Scope/environment lookup can be sped up here.
 
 ## Statements
 
@@ -73,8 +71,6 @@ foo.sort() and foo.sort(fn(a, b) => a <=> b)
 ```
 { "foo" => 10, "bar" => 20 }.select(["foo"]) == { "foo" => 10 }
 ```
-
-assoc and dissoc?
 
 ## Sets
 

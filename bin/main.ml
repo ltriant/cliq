@@ -1,5 +1,6 @@
 open Interpreter
 open Parser
+open Resolver
 open Types
 
 (* Parse tokens into AST *)
@@ -97,9 +98,11 @@ let run_source_file input_file =
     let code = In_channel.with_open_bin input_file In_channel.input_all in
     let env = create_env None in
     let interpreter = new_interpreter env in
+    let resolver = new_resolver interpreter in
     let tokens = Scanner.tokenize code in
     (* tokens |> Array.iter (fun t -> print_endline (string_of_token_kind t.kind)); *)
     let stmts = parse tokens code in
+    resolve resolver stmts;
     stmts
     |> List.iter (fun s ->
         let _ = interpret interpreter s in
@@ -113,6 +116,13 @@ let run_source_file input_file =
       let code = In_channel.with_open_bin input_file In_channel.input_all in
       let err_ctx = error_with_context code msg pos in
       print_endline err_ctx
+  | Resolve_error errs ->
+      let code = In_channel.with_open_bin input_file In_channel.input_all in
+      Dynarray.iter
+        (fun (msg, pos) ->
+          let err_ctx = error_with_context code msg pos in
+          print_endline err_ctx)
+        errs
   | Runtime_error (msg, pos) ->
       let code = In_channel.with_open_bin input_file In_channel.input_all in
       let err_ctx = error_with_context code msg pos in

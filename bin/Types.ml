@@ -7,6 +7,9 @@ exception Tokenize_error of string * position
 (* Exception for parsing errors *)
 exception Parse_error of string * position
 
+(* Exceptions for resolver errors *)
+exception Resolve_error of (string * position) Dynarray.t
+
 (* Exception for runtime errors *)
 exception Runtime_error of string * position
 
