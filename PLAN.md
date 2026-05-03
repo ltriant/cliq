@@ -3,11 +3,12 @@
 ## Interpreter and toolchain
 
 * Semantic analysis
-** ~~Referencing a variable that doesn't exist is a runtime error~~
+  * ~~Referencing a variable that doesn't exist is a runtime error~~
+  * Optimise environment and variable access
 * cliqfmt
 * Neovim plugin
 * Extensive test suite
-** Required before building a compiler
+  * Required before building a compiler
 * Bytecode VM
 
 ## REPL
@@ -25,10 +26,10 @@
 * Non-decimal number expressions
 * Sets?
 * IO functions
-** spit
-** apppend
-** slurp
-** system (and some syntax like Perl's backticks)
+  * spit
+  * apppend
+  * slurp
+  * system (and some syntax like Perl's backticks)
 * cond/when expressions?
 * Bitwise operators
 * Regex support
